@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Volume Booster Pro - Audio Test Lab</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #090d16;
+      color: #f8fafc;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      max-width: 640px;
+      width: 100%;
+      background: rgba(18, 24, 38, 0.85);
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 26px;
+      color: #00f0ff;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 14px;
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(168, 85, 247, 0.2);
+      border: 1px solid #a855f7;
+      color: #d8b4fe;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 20px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+    button {
+      padding: 14px 24px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-play {
+      background: linear-gradient(135deg, #00f0ff, #a855f7);
+      color: #090d16;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.4);
+    }
+    .btn-play:hover {
+      transform: scale(1.04);
+      box-shadow: 0 0 24px rgba(0, 240, 255, 0.6);
+    }
+    .btn-voice {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #f8fafc;
+    }
+    .btn-voice:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: #a855f7;
+    }
+    .status-box {
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 8px;
+      padding: 16px;
+      font-family: monospace;
+      font-size: 13px;
+      color: #38bdf8;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .steps {
+      text-align: left;
+      margin-top: 24px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 16px 20px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .steps h3 {
+      font-size: 13px;
+      color: #cbd5e1;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .steps ol {
+      margin-left: 18px;
+      color: #94a3b8;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="badge">🔊 AUDIO TEST GENERATOR</div>
+    <h1>⚡ Volume Booster Pro Test Lab</h1>
+    <p>Use the buttons below to generate dynamic audio in this tab, then click the <strong>Volume Booster Pro</strong> extension icon to test the amplification, 3-band equalizer, presets, and live spectrum visualizer!</p>
+
+    <div class="controls">
+      <button id="playBeatBtn" class="btn-play">
+        <span id="playIcon">▶️</span>
+        <span id="playText">Play Synth Beat & Bass</span>
+      </button>
+
+      <button id="voiceBtn" class="btn-voice">
+        <span>🎙️</span>
+        <span>Spoken Voice Test</span>
+      </button>
+    </div>
+
+    <div id="statusBox" class="status-box">Audio generator idle. Click "Play Synth Beat & Bass" to begin sound output.</div>
+
+    <div class="steps">
+      <h3>Testing Checklist:</h3>
+      <ol>
+        <li>Start audio using the button above.</li>
+        <li>Click the <strong>Volume Booster Pro</strong> extension icon in your Chrome toolbar.</li>
+        <li>Click <strong>START BOOST</strong> — observe the tab audio getting louder, the 16-band visualizer dancing, and the VU meter moving.</li>
+        <li>Switch presets between <strong>Balanced</strong>, <strong>Movie</strong>, <strong>Music</strong>, and <strong>Voice</strong>.</li>
+        <li>Adjust the <strong>Bass</strong>, <strong>Voice</strong>, and <strong>Treble</strong> sliders to hear immediate frequency shaping.</li>
+        <li>Slide volume up to <strong>300%</strong> to test the dynamics compressor and soft limiter.</li>
+        <li>Click <strong>STOP BOOST</strong> to hear audio instantly return to default tab volume.</li>
+      </ol>
+    </div>
+  </div>
+
+  <script>
+    let audioCtx = null;
+    let isPlaying = false;
+    let timerId = null;
+
+    const playBeatBtn = document.getElementById('playBeatBtn');
+    const voiceBtn = document.getElementById('voiceBtn');
+    const playIcon = document.getElementById('playIcon');
+    const playText = document.getElementById('playText');
+    const statusBox = document.getElementById('statusBox');
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playKick(time) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.frequency.setValueAtTime(130, time);
+      osc.frequency.exponentialRampToValueAtTime(35, time + 0.12);
+
+      gain.gain.setValueAtTime(0.8, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.14);
+
+      osc.start(time);
+      osc.stop(time + 0.15);
+    }
+
+    function playHiHat(time) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'highpass';
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.frequency.setValueAtTime(8000, time);
+      gain.gain.setValueAtTime(0.2, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+
+      osc.start(time);
+      osc.stop(time + 0.06);
+    }
+
+    function playSynthChord(time, freq) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, time);
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1200, time);
+      filter.frequency.exponentialRampToValueAtTime(400, time + 0.3);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      gain.gain.setValueAtTime(0.25, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.35);
+
+      osc.start(time);
+      osc.stop(time + 0.36);
+    }
+
+    const chords = [196, 220, 261.63, 174.61]; // G3, A3, C4, F3
+    let step = 0;
+
+    function scheduler() {
+      const now = audioCtx.currentTime;
+      // Kick on beats 0, 2, 4, 6
+      if (step % 2 === 0) {
+        playKick(now);
+      }
+      // Hi-hat on every step
+      playHiHat(now);
+      // Chords
+      if (step % 4 === 0) {
+        const chordIndex = Math.floor(step / 4) % chords.length;
+        playSynthChord(now, chords[chordIndex]);
+      }
+      step++;
+    }
+
+    playBeatBtn.addEventListener('click', () => {
+      initAudio();
+      if (!isPlaying) {
+        isPlaying = true;
+        playIcon.textContent = '⏸️';
+        playText.textContent = 'Pause Synth Beat';
+        statusBox.textContent = 'Playing continuous electronic beat & bass loop at 120 BPM...';
+        step = 0;
+        timerId = setInterval(scheduler, 250); // 120 BPM sixteenths
+      } else {
+        isPlaying = false;
+        clearInterval(timerId);
+        timerId = null;
+        playIcon.textContent = '▶️';
+        playText.textContent = 'Play Synth Beat & Bass';
+        statusBox.textContent = 'Playback paused.';
+      }
+    });
+
+    voiceBtn.addEventListener('click', () => {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(
+          "Testing Volume Booster Pro speech clarity. This is a voice clarity and dialogue test. Notice how speech frequencies at 2.2 kilohertz remain articulate and intelligible without harshness."
+        );
+        utterance.rate = 1.0;
+        utterance.pitch = 1.0;
+        window.speechSynthesis.speak(utterance);
+        statusBox.textContent = 'Speaking speech clarity test phrase...';
+      } else {
+        alert('Web Speech API is not supported in this browser context.');
+      }
+    });
+  </script>
+</body>
+</html>

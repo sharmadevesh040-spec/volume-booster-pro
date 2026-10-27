@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Volume Booster Pro</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="url(#brandGrad)"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+            <defs>
+              <linearGradient id="brandGrad" x1="2" y1="9" x2="11" y2="15" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#00f0ff" />
+                <stop offset="1" stop-color="#a855f7" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1 class="title">VOLUME BOOSTER <span class="badge-pro">PRO</span></h1>
+          <span class="subtitle">Laptop DSP Audio Enhancer</span>
+        </div>
+      </div>
+      <div id="statusPill" class="status-pill inactive" aria-live="polite">
+        <span class="status-dot"></span>
+        <span id="statusText" class="status-text">OFF</span>
+      </div>
+    </header>
+
+    <!-- Tab Info Banner -->
+    <div id="tabBanner" class="tab-banner">
+      <span class="tab-icon">🌐</span>
+      <span id="tabTitle" class="tab-title">Detecting active tab...</span>
+    </div>
+
+    <!-- Restricted Tab Warning (Shown on chrome:// etc) -->
+    <div id="restrictedNotice" class="restricted-notice hidden">
+      <span class="notice-icon">🔒</span>
+      <div class="notice-text">
+        <strong>Browser Security Restriction</strong>
+        <p>Chrome restricts audio capture on internal pages (<code id="restrictedUrl">chrome://</code>). Open YouTube, Spotify, or any media website to boost.</p>
+      </div>
+    </div>
+
+    <!-- Visualizer Card -->
+    <div class="card visualizer-card">
+      <div class="viz-header">
+        <span class="viz-title">REAL-TIME SPECTRUM</span>
+        <div class="viz-metrics">
+          <span id="vuLeftText" class="vu-readout">RMS: <strong id="rmsText">0 dB</strong></span>
+        </div>
+      </div>
+      <canvas id="visualizerCanvas" width="336" height="68"></canvas>
+      <div class="level-meter-wrapper">
+        <div class="level-track">
+          <div id="levelFill" class="level-fill"></div>
+        </div>
+        <div class="level-markers">
+          <span>-24</span>
+          <span>-12</span>
+          <span>-6</span>
+          <span class="limit-mark">0 dB</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Master Power / Boost Toggle Button -->
+    <div class="action-section">
+      <button id="toggleBoostBtn" class="btn btn-boost" aria-label="Toggle Volume Boost">
+        <span class="btn-icon" id="toggleBtnIcon">⚡</span>
+        <span id="toggleBtnText">START BOOST</span>
+      </button>
+    </div>
+
+    <!-- Volume Booster Controls -->
+    <div class="card volume-card">
+      <div class="card-header">
+        <span class="card-label">AMPLIFICATION</span>
+        <div class="volume-display">
+          <span id="volumePercent" class="volume-num">125%</span>
+          <span id="volumeDb" class="volume-db">+1.9 dB</span>
+        </div>
+      </div>
+
+      <div class="slider-wrapper">
+        <input
+          type="range"
+          id="volumeSlider"
+          class="custom-slider volume-slider"
+          min="100"
+          max="300"
+          step="1"
+          value="125"
+          aria-label="Volume Boost Percentage"
+        >
+        <div class="slider-ticks">
+          <button class="tick-btn" data-vol="100">100%</button>
+          <button class="tick-btn active-tick" data-vol="125">125%</button>
+          <button class="tick-btn" data-vol="150">150%</button>
+          <button class="tick-btn" data-vol="200">200%</button>
+          <button class="tick-btn" data-vol="300">300%</button>
+        </div>
+      </div>
+
+      <!-- High Amplification Alert (>200%) -->
+      <div id="highVolumeAlert" class="warning-alert hidden">
+        <span class="warning-icon">⚠️</span>
+        <div class="warning-content">
+          <strong>High Gain Selected (&gt;200%)</strong>
+          <span>May cause distortion on compact laptop speakers. Keep audio at comfortable levels.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Audio Presets -->
+    <div class="card presets-card">
+      <div class="card-header">
+        <span class="card-label">TUNED PRESETS</span>
+        <span id="activePresetBadge" class="preset-badge">Balanced</span>
+      </div>
+      <div class="presets-grid" role="radiogroup" aria-label="Audio Presets">
+        <button class="preset-chip" data-preset="normal" title="100% Flat Sound">
+          <span class="preset-icon">⚪</span>
+          <span class="preset-name">Normal</span>
+          <span class="preset-sub">100% Flat</span>
+        </button>
+
+        <button class="preset-chip active" data-preset="balanced" title="125% Default - Warm & Clear">
+          <span class="preset-icon">⚖️</span>
+          <span class="preset-name">Balanced</span>
+          <span class="preset-sub">125% • Def</span>
+        </button>
+
+        <button class="preset-chip" data-preset="movie" title="150% - Dialogue & Cinematic Bass">
+          <span class="preset-icon">🎬</span>
+          <span class="preset-name">Movie</span>
+          <span class="preset-sub">150% Vocals</span>
+        </button>
+
+        <button class="preset-chip" data-preset="music" title="140% - Dynamic Bass & Highs">
+          <span class="preset-icon">🎵</span>
+          <span class="preset-name">Music</span>
+          <span class="preset-sub">140% Punch</span>
+        </button>
+
+        <button class="preset-chip" data-preset="voice" title="160% - Speech Clarity, Cut Mud">
+          <span class="preset-icon">🎙️</span>
+          <span class="preset-name">Voice</span>
+          <span class="preset-sub">160% Clear</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 3-Band Equalizer -->
+    <div class="card eq-card">
+      <div class="card-header">
+        <span class="card-label">3-BAND EQUALIZER</span>
+        <button id="resetEqBtn" class="link-btn" title="Reset EQ to 0 dB">Reset EQ</button>
+      </div>
+
+      <!-- Bass Band -->
+      <div class="eq-row">
+        <div class="eq-meta">
+          <span class="eq-name">Bass</span>
+          <span class="eq-freq">150 Hz</span>
+        </div>
+        <div class="eq-slider-container">
+          <input
+            type="range"
+            id="bassSlider"
+            class="custom-slider eq-slider"
+            min="-6"
+            max="6"
+            step="0.5"
+            value="1.5"
+            aria-label="Bass Gain in Decibels"
+          >
+        </div>
+        <span id="bassValue" class="eq-value">+1.5 dB</span>
+      </div>
+
+      <!-- Voice Clarity Band -->
+      <div class="eq-row">
+        <div class="eq-meta">
+          <span class="eq-name">Voice</span>
+          <span class="eq-freq">2.2 kHz</span>
+        </div>
+        <div class="eq-slider-container">
+          <input
+            type="range"
+            id="voiceSlider"
+            class="custom-slider eq-slider"
+            min="-4"
+            max="6"
+            step="0.5"
+            value="2.0"
+            aria-label="Voice Clarity Gain in Decibels"
+          >
+        </div>
+        <span id="voiceValue" class="eq-value">+2.0 dB</span>
+      </div>
+
+      <!-- Treble Band -->
+      <div class="eq-row">
+        <div class="eq-meta">
+          <span class="eq-name">Treble</span>
+          <span class="eq-freq">7.0 kHz</span>
+        </div>
+        <div class="eq-slider-container">
+          <input
+            type="range"
+            id="trebleSlider"
+            class="custom-slider eq-slider"
+            min="-6"
+            max="6"
+            step="0.5"
+            value="1.0"
+            aria-label="Treble Gain in Decibels"
+          >
+        </div>
+        <span id="trebleValue" class="eq-value">+1.0 dB</span>
+      </div>
+    </div>
+
+    <!-- DSP Protection Info Chips -->
+    <div class="protection-chips">
+      <div class="dsp-chip" title="Dynamics compressor smoothly tames sudden audio peaks">
+        <span class="dsp-led active"></span>
+        <span>Peak Compressor</span>
+      </div>
+      <div class="dsp-chip" title="Hyperbolic tangent soft-clipper rounds excessive levels without digital distortion">
+        <span class="dsp-led active"></span>
+        <span>Soft Limiter</span>
+      </div>
+      <div class="dsp-chip" title="Smooth 35ms exponential transition to prevent clicks and pops">
+        <span class="dsp-led active"></span>
+        <span>Click-Free DSP</span>
+      </div>
+    </div>
+
+    <!-- Footer & Disclaimer -->
+    <footer class="footer">
+      <div class="footer-actions">
+        <button id="resetAllBtn" class="link-btn secondary">Restore Defaults</button>
+      </div>
+      <p class="disclaimer">
+        Boosts browser tab audio only. Does not replace Windows system volume. Software amplification cannot guarantee physical speaker safety; listen at comfortable levels.
+      </p>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

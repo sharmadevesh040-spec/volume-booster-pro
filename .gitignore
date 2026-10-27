@@ -1,0 +1,9 @@
+# Chrome Test Profiles & Runtime artifacts
+.chrome-test-profile/
+.test-profile/
+*.log
+
+# Node dependencies & temporary files
+node_modules/
+.DS_Store
+Thumbs.db
