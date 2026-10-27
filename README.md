@@ -1,172 +1,138 @@
-# Volume Booster Pro — Premium Chrome Extension
+# Volume Booster Pro — Windows System-Wide Audio Enhancer & DSP Equalizer
 
-[![Manifest V3](https://img.shields.io/badge/Manifest-V3-cyan.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
-[![Web Audio API](https://img.shields.io/badge/Web%20Audio%20DSP-Engine-purple.svg)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
+[![Windows 10 / 11](https://img.shields.io/badge/Platform-Windows%2010%20%7C%2011-blue.svg)]()
+[![Equalizer APO](https://img.shields.io/badge/Audio%20Engine-Equalizer%20APO%20%26%20WASAPI-purple.svg)]()
+[![Python & Qt 6](https://img.shields.io/badge/GUI-PySide6%20%28Qt%206%29-00f0ff.svg)]()
 [![Status](https://img.shields.io/badge/Status-Production%20Ready-brightgreen.svg)]()
 
-**Volume Booster Pro** is a high-fidelity audio amplification and DSP equalizer extension built with Manifest V3 for Google Chrome on Windows 10 & 11. Engineered specifically for laptop speakers and headphones, it boosts dialogue clarity, rich dynamics, and maximum loudness (up to **300%**) on YouTube, Netflix, Spotify Web, podcasts, and video calls without harsh digital distortion.
+**Volume Booster Pro** is a high-performance Windows desktop application designed to amplify and equalize audio across the **entire operating system**. It enhances sound from **Google Chrome, YouTube, Spotify, VLC Media Player, Netflix, Discord, PC games, and Windows system audio** with crystal-clear vocal articulation, controlled low-end, and peak protection.
 
 ---
 
-## Key Features
+## 1. System-Wide Architecture
 
-- ⚡ **300% Smooth Amplification:** Boost tab audio from 100% to 300% with live percentage and decibel (`+0.0 dB` to `+9.5 dB`) readouts.
-- 🎚️ **3-Band Precision Equalizer:**
-  - **Bass (150 Hz Low-Shelf):** `-6 dB` to `+6 dB` — Warm low-end without speaker rattle.
-  - **Voice Clarity (2.2 kHz Peaking):** `-4 dB` to `+6 dB` — Crisp vocal intelligibility for movies and podcasts.
-  - **Treble (7.0 kHz High-Shelf):** `-6 dB` to `+6 dB` — Sparkling presence and consonant articulation.
-- 🎛️ **5 Tuned DSP Presets:**
-  - **Normal (100%):** Completely flat response, zero coloration.
-  - **Balanced (125% - Default):** Ideal sweet spot for laptop speakers — warm bass, articulate vocals, comfortable lift.
-  - **Movie (150%):** Dialogue-forward tuning with cinematic ambient presence for films and streams.
-  - **Music (140%):** Vibrant V-curve response with punchy lows and sparkling highs.
-  - **Voice (160%):** Cuts muddy boominess and emphasizes spoken frequencies for podcasts and tutorials.
-- 🛡️ **Dual-Stage Peak Protection:**
-  - **DynamicsCompressorNode:** Automatically clamps sudden transients and explosions before they stress compact speakers.
-  - **Hyperbolic Tangent Soft Limiter:** Smooth `tanh` saturation wave-shaper that eliminates harsh square-wave digital clipping.
-  - **Click-Free Transitions:** Smooth 35ms exponential parameter ramps prevent pops when moving sliders.
-- 📊 **Real-Time Spectrum Visualizer:** 16-band gradient visualizer with falling peak caps and stereo VU level meter.
-- 💾 **Persistent Settings:** Remembers your volume, custom EQ bands, and active preset via `chrome.storage.local`.
-- 🔌 **Instant Start/Stop & Auto Cleanup:** Automatically restores original unmuted tab audio when stopped or when tabs close.
+### The Windows Audio Engineering Challenge
+In Windows Vista through Windows 11, the Windows Audio Engine (`audiodg.exe`) mixes audio from all applications before sending it to the sound driver/DAC. 
+> [!IMPORTANT]
+> Standard **WASAPI Loopback Capture** can only *listen* to the audio output; it **cannot** intercept, modify, or boost system sound in-place on that same endpoint without either an **Audio Processing Object (APO)** or a **Virtual Audio Device**.
 
----
-
-## Audio DSP Architecture
+To solve this properly, Volume Booster Pro implements a **Dual-Engine Architecture**:
 
 ```
-[ Captured Tab Audio ]
-          │ (chrome.tabCapture.getMediaStreamId)
-          ▼
-[ Offscreen Document: getUserMedia ]
-          │
-          ▼
-[ MediaStreamAudioSourceNode ]
-          │
-          ▼
-[ Bass Filter (150 Hz Low-Shelf, ±6 dB) ]
-          │
-          ▼
-[ Voice Clarity Filter (2.2 kHz Peaking, Q=1.0, -4 to +6 dB) ]
-          │
-          ▼
-[ Treble Filter (7.0 kHz High-Shelf, ±6 dB) ]
-          │
-          ▼
-[ Master GainNode (1.0x to 3.0x Amplification) ]
-          │
-          ▼
-[ DynamicsCompressorNode ]
-  ├─ Threshold: -16 dB
-  ├─ Knee: 24 dB
-  ├─ Ratio: 8:1
-  ├─ Attack: 3 ms
-  └─ Release: 250 ms
-          │
-          ▼
-[ Soft Limiter WaveShaperNode ]
-  ├─ Curve: f(x) = tanh(1.25x) / tanh(1.25)
-  └─ Oversampling: 4x
-          │
-          ├───────────────────────────────┐
-          ▼                               ▼
-[ AnalyserNode (FFT 64) ]        [ AudioContext.destination ]
-  └─ Streams to Popup               └─ Output to Laptop Speakers/Headphones
-     Visualizer & VU Meter
+                              [ Windows Applications ]
+                  (Chrome, Spotify, VLC, Games, Netflix, Discord)
+                                         │
+                    ┌────────────────────┴────────────────────┐
+                    ▼                                         ▼
+         [ Engine A: Equalizer APO ]              [ Engine B: Virtual Cable ]
+     (Direct audiodg.exe LFX/GFX Filter)       (VB-CABLE / Virtual Audio Device)
+                    │                                         │
+                    │ Zero Latency                            ▼
+                    │ Zero CPU Overhead          [ Low-Latency Capture Stream ]
+                    │ Real-Time Profile Sync                  │
+                    │                                         ▼
+                    │                         [ Real-Time Vector DSP Engine ]
+                    │                          ├─ 3-Band Parametric Biquad EQ
+                    │                          ├─ 100% - 300% Master Gain Stage
+                    │                          ├─ Dynamics Peak Compressor
+                    │                          └─ Tanh Soft-Knee Limiter
+                    │                                         │
+                    └────────────────────┬────────────────────┘
+                                         ▼
+                       [ Hardware Output Endpoint ]
+                  (Speakers / Headphones / Realtek DAC)
+                                         │
+                                         ▼
+                       [ Live WASAPI Audio Monitor ]
+                                         │
+                                         ▼
+             [ Real-Time 16-Band Spectrum Visualizer & VU Meter ]
 ```
 
----
+### Engine A: Equalizer APO Native System Engine (Recommended)
+- **Zero latency, zero CPU overhead, no virtual drivers required.**
+- Volume Booster Pro dynamically manages `VolumeBoosterPro.txt` and links it into Equalizer APO's `config.txt`.
+- Safe atomic updates: Every volume or EQ adjustment updates the audio filter in real-time inside `audiodg.exe` without dropping a single sample.
+- Built-in Setup & Diagnostics dialog guides you through 1-click device configuration.
 
-## Project Structure
-
-```
-volume-booster-pro/
-├── manifest.json          # Manifest V3 extension configuration
-├── popup.html             # Glassmorphic dark cyber UI popup
-├── popup.css              # Styling, animations, custom sliders & visualizer
-├── popup.js               # UI interaction, presets, live settings & visualizer loop
-├── service-worker.js      # Background coordinator, tab lifecycle & storage
-├── offscreen.html         # Offscreen Document host for Web Audio API
-├── offscreen.js           # Web Audio DSP pipeline, filters, compressor, soft-limiter
-├── generate-icons.js      # Icon generation script
-├── test-extension.js      # Automated unit tests for DSP math & manifest validation
-├── icons/                 # High-DPI extension icons
-│   ├── icon16.png
-│   ├── icon32.png
-│   ├── icon48.png
-│   └── icon128.png
-├── volume-booster-pro.zip # Ready-to-distribute ZIP package
-└── README.md              # Documentation and user manual
-```
+### Engine B: Virtual Audio Device / Passthrough Engine
+- For systems without Equalizer APO: integrates seamlessly with VB-CABLE or Virtual Audio Cable.
+- Windows Default Output is set to the Virtual Cable; Volume Booster Pro captures the stream, processes it with its real-time DSP pipeline, and outputs boosted audio to physical speakers.
+- Built-in feedback-loop protector guarantees input and output devices can never be the same.
 
 ---
 
-## Installation Guide (Step-by-Step)
+## 2. Audio DSP Pipeline & Signal Staging
 
-Follow these simple steps to load **Volume Booster Pro** into Google Chrome:
-
-### 1. Open Chrome Extensions
-- Open Google Chrome.
-- In the address bar, type `chrome://extensions` and press **Enter**.
-
-### 2. Enable Developer Mode
-- In the top-right corner of the Extensions page, toggle the **Developer mode** switch to **ON**.
-
-### 3. Load the Unpacked Extension
-- Click the **Load unpacked** button in the top-left toolbar.
-- In the file picker dialog, navigate to and select the folder:
-  ```
-  c:\myproject\volume booster
-  ```
-- Click **Select Folder**.
-
-### 4. Pin to Toolbar
-- Click the puzzle icon (Extensions menu) in the Chrome toolbar.
-- Find **Volume Booster Pro** and click the **Pin** icon so it remains easily accessible.
+1. **3-Band Parametric Equalizer (Biquad Direct Form II Transposed):**
+   - **Bass (150 Hz Low-Shelf):** `-6 dB` to `+6 dB` — Warm, rich low-end without speaker rattle.
+   - **Voice Clarity (2.2 kHz Peaking, Q=1.0):** `-4 dB` to `+6 dB` — Dialogue clarity for movies, podcasts, and calls.
+   - **Treble (7.0 kHz High-Shelf):** `-6 dB` to `+6 dB` — Air, presence, and consonant articulation.
+2. **Master Amplification Stage:**
+   - Smooth gain scaling from **100% to 300%** (`+0.0 dB` to `+9.54 dB`).
+   - Default sweet spot: **Balanced at 125%** (`+1.94 dB`).
+3. **Dynamics Peak Compressor:**
+   - Threshold: `-16 dB`, Knee: `24 dB`, Ratio: `8:1`, Attack: `3 ms`, Release: `250 ms`.
+   - Clamps sudden explosions, transients, and loud spikes.
+4. **Symmetric Soft-Knee Tanh Limiter:**
+   - Signals below `0.8` (`-1.94 dBFS`) remain 100% linear with zero coloration.
+   - Peaks exceeding `0.8` are smoothly saturated using hyperbolic tangent compression:
+     $$f(x) = \text{sgn}(x) \cdot \left[ 0.8 + 0.2 \cdot \tanh\left(\frac{|x| - 0.8}{0.2}\right) \right]$$
+   - Mathematically guarantees audio is strictly bounded within `[-1.0, 1.0]` (0 dBFS), completely eliminating harsh digital square-wave clipping.
 
 ---
 
-## How to Use
+## 3. Tuned Acoustic Presets
 
-1. **Open Any Media Tab:** Navigate to YouTube, Netflix, Spotify, or any website playing sound.
-2. **Open Volume Booster Pro:** Click the extension icon in your Chrome toolbar.
-3. **Start Amplification:** Click the **⚡ START BOOST** button.
-   - The status pill will turn **BOOSTING**.
-   - The real-time spectrum visualizer will dance to the audio.
-   - The extension badge will display the live boost level (e.g. `125%`).
-4. **Choose a Preset or Customize:**
-   - Tap **Balanced** (default), **Movie**, **Music**, or **Voice**.
-   - Or drag the **Amplification Slider** anywhere between **100%** and **300%**.
-   - Fine-tune the **Bass**, **Voice**, and **Treble** sliders to match your laptop speakers.
-5. **Stop Boost:** Click **⏹️ STOP BOOST** at any time to instantly restore normal unmuted tab audio.
+| Preset | Volume | Bass (150 Hz) | Voice (2.2 kHz) | Treble (7.0 kHz) | Tuning Target |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Normal** | `100%` (`0.0 dB`) | `0.0 dB` | `0.0 dB` | `0.0 dB` | Bit-perfect flat reference sound. |
+| **Balanced** *(Default)* | **`125%`** (`+1.9 dB`) | **`+1.5 dB`** | **`+2.0 dB`** | **`+1.0 dB`** | Recommended laptop speaker sweet spot. Warm bass, articulate speech. |
+| **Bass Boost** | `140%` (`+2.9 dB`) | `+4.5 dB` | `+1.0 dB` | `+1.5 dB` | Deep low-end punch for EDM, hip-hop, and action scenes. |
+| **Movie** | `150%` (`+3.5 dB`) | `+2.0 dB` | `+3.5 dB` | `+1.5 dB` | Dialogue intelligibility with cinematic presence. |
+| **Voice** | `160%` (`+4.1 dB`) | `-2.0 dB` | `+5.0 dB` | `+2.0 dB` | Cuts muddy room boom; sharpens podcasts, YouTube tutorials, and Discord voice. |
 
 ---
 
-## Safety and Speaker Protection Philosophy
+## 4. How to Run
 
-- **No Software Magic Bullet:** While our dual-stage dynamics compressor and tanh soft-limiter effectively eliminate digital distortion and square-wave spikes, **no software can guarantee physical speaker hardware protection against thermal overload or excessive mechanical excursion**.
-- **Listen Responsibly:** High amplification (>200%) should be used thoughtfully, especially on ultra-thin laptop speakers. If audio starts sounding raspy or muffled, lower the gain to keep sound comfortable and clear.
+### Option A: 1-Click Batch Launcher (Quickest)
+Double-click [`run_app.bat`](file:///c:/myproject/volume%20booster/run_app.bat) in the project root folder.
 
----
-
-## Known Limitations
-
-1. **Browser Tab Scope:** Chrome's `tabCapture` API captures audio originating within the active browser tab only. It does not amplify Windows desktop applications (e.g. Spotify desktop app, Zoom desktop client, or PC system sounds).
-2. **Internal Chrome Pages:** For browser security, Chrome strictly disallows extensions from capturing audio on `chrome://`, `chrome-extension://`, `devtools://`, and `chromewebstore.google.com` pages. The extension gracefully detects these pages and displays an informative notification.
-3. **Single Active Tab Capture:** To prevent hardware feedback loops and excessive CPU overhead, one browser tab is boosted at a time. Switching to another tab allows you to transfer boost seamlessly.
-
----
-
-## Verification & Testing
-
-To run the automated DSP and manifest verification tests:
-
+### Option B: Run from Python Source
 ```bash
-node test-extension.js
+python main.py
 ```
 
-All 5 core test suites validate:
-- Manifest V3 structure and permission requirements
-- Icon integrity across all 4 resolutions
-- Soft-clipping limiter symmetry and monotonicity
-- Preset frequency boundaries and default gains
-- Decibel calculation precision
+### Option C: Run Standalone Executable
+```bash
+dist\VolumeBoosterPro\VolumeBoosterPro.exe
+```
+
+---
+
+## 5. Equalizer APO Setup (3-Minute Guide)
+
+For native kernel-level zero-latency system enhancement:
+1. Open Volume Booster Pro and click the **APO: SETUP REQUIRED** badge or button.
+2. Click **Download Equalizer APO** (opens official [SourceForge](https://sourceforge.net/projects/equalizerapo/)).
+3. Run the installer. In the **Configurator** window, check the box next to your audio output device (e.g. `Speakers (Realtek(R) Audio)`).
+4. Restart your Windows PC.
+5. Launch Volume Booster Pro — the badge will turn **EQUALIZER APO: ACTIVE** and all system audio will be amplified in real-time!
+
+---
+
+## 6. Windows System Integration
+
+- **Minimize to Tray:** Minimizes to the Windows taskbar notification area to stay out of your way.
+- **System Tray Menu:** Right-click the tray icon to switch presets, adjust volume, toggle Master Bypass, or restore the window.
+- **Start with Windows:** Easily toggled via checkbox (manages `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`).
+- **Device Switcher:** Automatically enumerates and switches between Speakers, Headphones, and external audio DACs.
+- **Settings Persistence:** Remembers your volume, custom EQ curves, and active device in `%LOCALAPPDATA%\VolumeBoosterPro\settings.json`.
+
+---
+
+## 7. Speaker & Hearing Safety Notice
+
+- **No Software Guarantees Hardware Safety:** While our dynamics compressor and soft-limiter prevent digital distortion and square-wave clipping, **software cannot physically guarantee speaker hardware protection against continuous thermal overload**.
+- **Listen Responsibly:** High amplification (>200%) should be used cautiously on thin laptop speakers. If audio starts sounding strained, lower the gain to keep sound comfortable.

@@ -1,9 +1,19 @@
-# Chrome Test Profiles & Runtime artifacts
-.chrome-test-profile/
-.test-profile/
+# Build & Dist artifacts
+build/
+dist/
+*.spec
 *.log
 
-# Node dependencies & temporary files
+# Chrome test profiles
+.chrome-test-profile/
+.test-profile/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Temporary & system files
 node_modules/
 .DS_Store
 Thumbs.db
