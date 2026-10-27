@@ -1,6 +1,10 @@
 @echo off
 title Volume Booster Pro - Windows Audio Enhancer
 cd /d "%~dp0"
-echo Starting Volume Booster Pro...
-start "" pythonw main.py
+
+if exist "dist\VolumeBoosterPro\VolumeBoosterPro.exe" (
+    start "" "dist\VolumeBoosterPro\VolumeBoosterPro.exe"
+) else (
+    start "" python main.py
+)
 exit

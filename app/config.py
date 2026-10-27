@@ -70,9 +70,9 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "treble": 1.0,
     "bypassed": False,
     "device_name": "",
-    "start_with_windows": False,
-    "minimize_to_tray": False,
-    "close_to_tray": False,
+    "start_with_windows": True,
+    "minimize_to_tray": True,
+    "close_to_tray": True,
     "dark_mode": True
 }
 
@@ -163,8 +163,17 @@ class ConfigManager:
                 if enable:
                     if not exe_path:
                         import sys
-                        exe_path = sys.executable if getattr(sys, "frozen", False) else os.path.abspath("main.py")
-                    val = f'"{exe_path}" --minimized'
+                        dist_exe = os.path.abspath(os.path.join("dist", "VolumeBoosterPro", "VolumeBoosterPro.exe"))
+                        if getattr(sys, "frozen", False):
+                            val = f'"{sys.executable}" --minimized'
+                        elif os.path.exists(dist_exe):
+                            val = f'"{dist_exe}" --minimized'
+                        else:
+                            pythonw = os.path.join(os.path.dirname(sys.executable), "pythonw.exe")
+                            py_bin = pythonw if os.path.exists(pythonw) else sys.executable
+                            val = f'"{py_bin}" "{os.path.abspath("main.py")}" --minimized'
+                    else:
+                        val = f'"{exe_path}" --minimized'
                     winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, val)
                 else:
                     try:
