@@ -71,8 +71,8 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "bypassed": False,
     "device_name": "",
     "start_with_windows": False,
-    "minimize_to_tray": True,
-    "close_to_tray": True,
+    "minimize_to_tray": False,
+    "close_to_tray": False,
     "dark_mode": True
 }
 

@@ -15,13 +15,13 @@ class SpectrumVisualizerWidget(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setMinimumHeight(84)
+        self.setMinimumHeight(88)
         self.setAttribute(Qt.WA_OpaquePaintEvent, False)
 
         self.num_bars = 16
-        self.bars = [0.0] * self.num_bars
-        self.display_bars = [0.0] * self.num_bars
-        self.peak_caps = [0.0] * self.num_bars
+        self.bars = [0.05] * self.num_bars
+        self.display_bars = [0.05] * self.num_bars
+        self.peak_caps = [0.05] * self.num_bars
         self.peak_velocities = [0.0] * self.num_bars
 
         self.rms_level = 0.0
@@ -44,15 +44,15 @@ class SpectrumVisualizerWidget(QWidget):
             if target > self.display_bars[i]:
                 self.display_bars[i] = target
             else:
-                self.display_bars[i] = self.display_bars[i] * 0.85 + target * 0.15
+                self.display_bars[i] = self.display_bars[i] * 0.82 + target * 0.18
 
             # Peak cap gravity drop
             if self.display_bars[i] >= self.peak_caps[i]:
                 self.peak_caps[i] = self.display_bars[i]
                 self.peak_velocities[i] = 0.0
             else:
-                self.peak_velocities[i] += 0.012
-                self.peak_caps[i] = max(0.0, self.peak_caps[i] - self.peak_velocities[i])
+                self.peak_velocities[i] += 0.015
+                self.peak_caps[i] = max(0.02, self.peak_caps[i] - self.peak_velocities[i])
 
         self.display_rms = self.display_rms * 0.75 + self.rms_level * 0.25
         self.update()
@@ -64,40 +64,37 @@ class SpectrumVisualizerWidget(QWidget):
 
         w = self.width()
         h = self.height()
-
-        # Visualizer area occupies top h - 18, VU meter occupies bottom 18px
         viz_h = h - 22
 
         # Background rounded dark card
-        painter.setBrush(QColor(11, 15, 25, 200))
-        painter.setPen(QColor(255, 255, 255, 12))
+        painter.setBrush(QColor(11, 15, 25, 230))
+        painter.setPen(QColor(255, 255, 255, 15))
         painter.drawRoundedRect(0, 0, w, h, 8, 8)
 
-        # Spacing and bar widths
         margin = 12
         available_w = w - (margin * 2)
         spacing = 4
         bar_w = (available_w - (spacing * (self.num_bars - 1))) / self.num_bars
 
-        # If audio is not actively playing, draw subtle ambient idle baseline
-        if not self.is_playing or self.display_rms < 0.005:
-            self.idle_phase += 0.05
-            painter.setPen(QPen(QColor(0, 240, 255, 35), 1.5))
-            for x in range(margin, w - margin, 4):
-                rel_x = (x - margin) / available_w
-                y = viz_h / 2.0 + math.sin(rel_x * 8.0 + self.idle_phase) * 6.0 * math.sin(rel_x * math.pi)
-                painter.drawPoint(int(x), int(y))
-
-        # Gradient for frequency bars
+        # Frequency bar gradient
         grad = QLinearGradient(0, viz_h, 0, 0)
         grad.setColorAt(0.0, QColor(0, 240, 255, 220))    # Neon Cyan
         grad.setColorAt(0.65, QColor(168, 85, 247, 230))  # Electric Purple
         grad.setColorAt(1.0, QColor(236, 72, 153, 240))   # Magenta
 
+        # Ambient baseline waveform if audio is quiet
+        if not self.is_playing:
+            self.idle_phase += 0.04
+            painter.setPen(QPen(QColor(0, 240, 255, 40), 1.5))
+            for x in range(margin, w - margin, 4):
+                rel_x = (x - margin) / available_w
+                y = viz_h / 2.0 + math.sin(rel_x * 8.0 + self.idle_phase) * 5.0 * math.sin(rel_x * math.pi)
+                painter.drawPoint(int(x), int(y))
+
         # Render 16 Frequency Bars
         for i in range(self.num_bars):
             val = self.display_bars[i]
-            bar_height = max(3.0, val * (viz_h - 10))
+            bar_height = max(4.0, val * (viz_h - 10))
             bx = margin + i * (bar_w + spacing)
             by = viz_h - bar_height
 
@@ -109,7 +106,7 @@ class SpectrumVisualizerWidget(QWidget):
             cap_val = self.peak_caps[i]
             cap_y = viz_h - (cap_val * (viz_h - 10)) - 3.0
             if 0 <= cap_y <= viz_h:
-                painter.setBrush(QColor(255, 255, 255, 240))
+                painter.setBrush(QColor(255, 255, 255, 220))
                 painter.drawRoundedRect(QRectF(bx, cap_y, bar_w, 2.0), 1, 1)
 
         # Bottom VU Level Meter Track
@@ -128,7 +125,7 @@ class SpectrumVisualizerWidget(QWidget):
             meter_grad.setColorAt(0.0, QColor(16, 185, 129))   # Green
             meter_grad.setColorAt(0.6, QColor(0, 240, 255))    # Cyan
             meter_grad.setColorAt(0.85, QColor(168, 85, 247))  # Purple
-            meter_grad.setColorAt(1.0, QColor(245, 158, 11))   # Amber/Limiter
+            meter_grad.setColorAt(1.0, QColor(245, 158, 11))   # Amber
             painter.setBrush(QBrush(meter_grad))
             painter.drawRoundedRect(QRectF(margin, meter_y, fill_w, meter_h), 2.5, 2.5)
 

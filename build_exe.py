@@ -33,6 +33,7 @@ def build():
         "--hidden-import=sounddevice",
         "--hidden-import=numpy",
         "--hidden-import=comtypes",
+        "--hidden-import=pycaw",
         "--hidden-import=winreg",
         main_py
     ]

@@ -1,11 +1,12 @@
 """
 Volume Booster Pro - Equalizer APO Setup and Diagnostics Dialog
-Provides transparent configuration instructions, detection, and download guidance.
+Provides transparent configuration instructions, detection, and 1-click Configurator launch.
 """
 
+import os
 import webbrowser
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QTextEdit
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QTextEdit, QMessageBox
 )
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt
@@ -22,7 +23,7 @@ class ApoSetupDialog(QDialog):
         super().__init__(parent)
         self.apo = apo_engine
         self.setWindowTitle("Equalizer APO - System Engine Setup & Diagnostics")
-        self.setFixedSize(560, 460)
+        self.setFixedSize(580, 500)
         self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
 
         self._init_ui()
@@ -30,7 +31,7 @@ class ApoSetupDialog(QDialog):
 
     def _init_ui(self):
         layout = QVBoxLayout(self)
-        layout.setSpacing(14)
+        layout.setSpacing(12)
         layout.setContentsMargins(20, 20, 20, 20)
 
         # Header Title
@@ -44,7 +45,7 @@ class ApoSetupDialog(QDialog):
             "with zero latency, zero CPU overhead, and without requiring any virtual cables."
         )
         desc.setWordWrap(True)
-        desc.setStyleSheet("color: #94a3b8; line-height: 1.4;")
+        desc.setStyleSheet("color: #94a3b8; line-height: 1.4; font-size: 11px;")
         layout.addWidget(desc)
 
         # Status Card
@@ -68,6 +69,10 @@ class ApoSetupDialog(QDialog):
         self.config_label.setStyleSheet("font-size: 11px; color: #94a3b8;")
         card_layout.addWidget(self.config_label)
 
+        self.speaker_status_label = QLabel("Device Selection: Checking...")
+        self.speaker_status_label.setStyleSheet("font-size: 11px; color: #fbbf24;")
+        card_layout.addWidget(self.speaker_status_label)
+
         layout.addWidget(self.status_card)
 
         # Step-by-Step Guide
@@ -76,11 +81,10 @@ class ApoSetupDialog(QDialog):
         layout.addWidget(guide_header)
 
         instructions = (
-            "1. Download Equalizer APO (Official SourceForge installer).\n"
-            "2. Run the installer and complete the setup wizard.\n"
-            "3. In the 'Configurator' window, check your Playback Device (e.g. Speakers / Headphones).\n"
-            "4. Reboot your Windows PC to allow the Windows Audio Engine to register the APO.\n"
-            "5. Volume Booster Pro will automatically detect the installation and apply real-time boost!"
+            "1. In the Configurator, check the box next to 'Speakers (Realtek(R) Audio)' or your headphones.\n"
+            "2. If requested, select 'Install as LFX/GFX (default)' or 'SFX/EFX (recommended for Windows 10/11)'.\n"
+            "3. Click OK and restart your PC (or restart the 'Windows Audio' service).\n"
+            "4. Volume Booster Pro will then boost all YouTube, Chrome, VLC, Spotify, and PC sound up to 300%!"
         )
         guide_box = QTextEdit()
         guide_box.setReadOnly(True)
@@ -94,15 +98,23 @@ class ApoSetupDialog(QDialog):
         # Action Buttons
         btn_layout = QHBoxLayout()
 
+        self.btn_configurator = QPushButton("⚙️ Open Configurator (Select Speakers)")
+        self.btn_configurator.setStyleSheet(
+            "background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #10b981, stop:1 #00f0ff); "
+            "color: #090d16; font-weight: 800; padding: 8px 14px; border-radius: 8px;"
+        )
+        self.btn_configurator.clicked.connect(self._launch_configurator)
+        btn_layout.addWidget(self.btn_configurator)
+
         self.btn_download = QPushButton("🌐 Download Equalizer APO")
         self.btn_download.setStyleSheet(
-            "background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #00f0ff, stop:1 #a855f7); "
-            "color: #090d16; font-weight: 800; padding: 8px 16px; border-radius: 8px;"
+            "background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); "
+            "color: #f8fafc; font-weight: 700; padding: 8px 14px; border-radius: 8px;"
         )
         self.btn_download.clicked.connect(self._open_download)
         btn_layout.addWidget(self.btn_download)
 
-        self.btn_refresh = QPushButton("🔄 Recheck Installation")
+        self.btn_refresh = QPushButton("🔄 Refresh")
         self.btn_refresh.clicked.connect(self._refresh_status)
         btn_layout.addWidget(self.btn_refresh)
 
@@ -129,12 +141,36 @@ class ApoSetupDialog(QDialog):
             else:
                 self.config_label.setText("Integration Status: Ready to link on first boost.")
                 self.config_label.setStyleSheet("color: #fbbf24; font-size: 11px;")
+
+            is_configured = self.apo.is_speaker_configured()
+            if is_configured:
+                self.speaker_status_label.setText("Device Status: 🔊 Speakers configured in Equalizer APO.")
+                self.speaker_status_label.setStyleSheet("color: #34d399; font-size: 11px; font-weight: 700;")
+            else:
+                self.speaker_status_label.setText("Device Status: ⚠️ Click 'Open Configurator' to select Speakers.")
+                self.speaker_status_label.setStyleSheet("color: #fbbf24; font-size: 11px; font-weight: 700;")
+
+            self.btn_configurator.setVisible(True)
+            self.btn_download.setVisible(False)
         else:
             self.status_header.setText("Detection Status: ⚠️ Not Installed")
             self.status_header.setStyleSheet("color: #f59e0b; font-weight: 800; font-size: 13px;")
             self.path_label.setText("Install Path: Not found in standard directories or registry.")
             self.config_label.setText("Integration Status: Follow instructions below to enable system-wide boost.")
             self.config_label.setStyleSheet("color: #94a3b8; font-size: 11px;")
+            self.speaker_status_label.setText("Device Status: Driver installation required.")
+            self.speaker_status_label.setStyleSheet("color: #94a3b8; font-size: 11px;")
+            self.btn_configurator.setVisible(False)
+            self.btn_download.setVisible(True)
+
+    def _launch_configurator(self):
+        """Launch Equalizer APO Configurator as admin."""
+        if not self.apo.launch_configurator():
+            QMessageBox.warning(
+                self,
+                "Configurator",
+                "Could not launch Equalizer APO Configurator automatically. Please open DeviceSelector.exe from C:\\Program Files\\EqualizerAPO as Administrator."
+            )
 
     def _open_download(self):
         webbrowser.open(EQUALIZER_APO_DOWNLOAD_URL)

@@ -33,6 +33,13 @@ def setup_windows_environment():
         except Exception:
             pass
 
+    try:
+        # Windows COM initialization for Core Audio
+        import comtypes
+        comtypes.CoInitialize()
+    except Exception:
+        pass
+
 
 def main():
     """Main application routine."""

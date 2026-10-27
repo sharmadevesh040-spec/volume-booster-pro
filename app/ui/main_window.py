@@ -6,6 +6,7 @@ system-wide volume controls, 3-band equalizer, presets, and tray management.
 
 import os
 import sys
+import subprocess
 from typing import Any
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider,
@@ -24,6 +25,15 @@ from app.ui.visualizer import SpectrumVisualizerWidget
 from app.ui.apo_dialog import ApoSetupDialog
 from app.ui.tray import TrayManager
 
+# Windows Master Endpoint Volume via pycaw
+try:
+    import ctypes
+    import comtypes
+    from pycaw.pycaw import AudioUtilities, IAudioEndpointVolume
+    HAS_PYCAW = True
+except Exception:
+    HAS_PYCAW = False
+
 
 class MainWindow(QMainWindow):
     """Main application window for Volume Booster Pro."""
@@ -34,8 +44,8 @@ class MainWindow(QMainWindow):
         self.apo = apo_engine
 
         self.setWindowTitle(f"{APP_DISPLAY_NAME} — Windows System-Wide Audio Enhancer")
-        self.setMinimumSize(490, 760)
-        self.resize(520, 820)
+        self.setMinimumSize(490, 780)
+        self.resize(520, 840)
 
         # Set application icon
         icon_path = os.path.abspath("assets/icon.png")
@@ -44,11 +54,8 @@ class MainWindow(QMainWindow):
 
         self.setStyleSheet(CYBER_DARK_STYLESHEET)
 
-        # Audio monitor thread
-        self.monitor_thread = QThread(self)
-        self.monitor_worker = AudioMonitorWorker()
-        self.monitor_worker.moveToThread(self.monitor_thread)
-        self.monitor_thread.started.connect(self.monitor_worker.start_monitoring)
+        # Audio monitor
+        self.monitor = AudioMonitorWorker("", self)
 
         # Initialize Tray Manager
         self.tray = TrayManager(icon_path, self)
@@ -64,8 +71,8 @@ class MainWindow(QMainWindow):
         self._apply_audio_dsp(notify_apo=True)
 
         # Start audio monitoring
-        self.monitor_worker.spectrum_updated.connect(self.visualizer.update_audio_data)
-        self.monitor_thread.start()
+        self.monitor.spectrum_updated.connect(self.visualizer.update_audio_data)
+        self.monitor.start_monitoring()
 
     def _init_ui(self):
         """Construct the complete user interface layout."""
@@ -141,7 +148,55 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(dev_card)
 
-        # 3. Real-Time Spectrum Visualizer Card
+        # 3. Setup / Action Banner
+        self.setup_banner = QFrame()
+        self.setup_banner.setStyleSheet(
+            "QFrame { background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); "
+            "border-radius: 10px; padding: 10px; }"
+        )
+        banner_layout = QVBoxLayout(self.setup_banner)
+        banner_layout.setSpacing(6)
+        banner_layout.setContentsMargins(8, 8, 8, 8)
+
+        self.banner_title = QLabel("⚠️ SYSTEM AMPLIFICATION DRIVER SETUP")
+        self.banner_title.setStyleSheet("font-size: 11px; font-weight: 800; color: #fbbf24;")
+        banner_layout.addWidget(self.banner_title)
+
+        self.banner_desc = QLabel(
+            "Equalizer APO allows boosting audio up to 300% across all Windows apps (Chrome, Spotify, VLC, games). "
+            "Ensure your laptop speakers are selected in the Configurator!"
+        )
+        self.banner_desc.setWordWrap(True)
+        self.banner_desc.setStyleSheet("font-size: 10px; color: #fde68a; line-height: 1.35;")
+        banner_layout.addWidget(self.banner_desc)
+
+        b_actions = QHBoxLayout()
+        self.btn_configurator = QPushButton("⚙️ Select Speakers (Admin)")
+        self.btn_configurator.setStyleSheet(
+            "background: #10b981; color: #090d16; font-weight: 800; font-size: 10px; padding: 5px 10px; border-radius: 6px;"
+        )
+        self.btn_configurator.clicked.connect(self._launch_configurator)
+        b_actions.addWidget(self.btn_configurator)
+
+        btn_guide = QPushButton("🛠️ Setup Guide")
+        btn_guide.setStyleSheet(
+            "background: #fbbf24; color: #090d16; font-weight: 800; font-size: 10px; padding: 5px 10px; border-radius: 6px;"
+        )
+        btn_guide.clicked.connect(self._open_apo_dialog)
+        b_actions.addWidget(btn_guide)
+
+        btn_win_sound = QPushButton("🔊 Instant Sound Boost")
+        btn_win_sound.setStyleSheet(
+            "background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2); "
+            "font-size: 10px; padding: 5px 10px; border-radius: 6px;"
+        )
+        btn_win_sound.clicked.connect(self._open_windows_sound_enhancements)
+        b_actions.addWidget(btn_win_sound)
+
+        banner_layout.addLayout(b_actions)
+        main_layout.addWidget(self.setup_banner)
+
+        # 4. Real-Time Spectrum Visualizer Card
         viz_card = QFrame()
         viz_card.setProperty("class", "glass-card")
         viz_layout = QVBoxLayout(viz_card)
@@ -154,7 +209,7 @@ class MainWindow(QMainWindow):
         viz_header.addWidget(viz_title)
         viz_header.addStretch()
 
-        self.rms_readout = QLabel("RMS: 0.0 dB")
+        self.rms_readout = QLabel("ACTIVE")
         self.rms_readout.setStyleSheet("font-size: 11px; font-weight: 700; color: #a855f7;")
         viz_header.addWidget(self.rms_readout)
         viz_layout.addLayout(viz_header)
@@ -164,7 +219,7 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(viz_card)
 
-        # 4. Master Volume Amplification Card
+        # 5. Master Volume Amplification Card
         vol_card = QFrame()
         vol_card.setProperty("class", "glass-card")
         vol_layout = QVBoxLayout(vol_card)
@@ -221,7 +276,7 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(vol_card)
 
-        # 5. Tuned Presets Card
+        # 6. Tuned Presets Card
         preset_card = QFrame()
         preset_card.setProperty("class", "glass-card")
         preset_layout = QVBoxLayout(preset_card)
@@ -262,7 +317,7 @@ class MainWindow(QMainWindow):
         preset_layout.addLayout(presets_grid)
         main_layout.addWidget(preset_card)
 
-        # 6. 3-Band Equalizer Card
+        # 7. 3-Band Equalizer Card
         eq_card = QFrame()
         eq_card.setProperty("class", "glass-card")
         eq_layout = QVBoxLayout(eq_card)
@@ -311,7 +366,7 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(eq_card)
 
-        # 7. Master Actions & Controls
+        # 8. Master Actions & Controls
         actions_layout = QHBoxLayout()
         actions_layout.setSpacing(8)
 
@@ -327,7 +382,7 @@ class MainWindow(QMainWindow):
 
         main_layout.addLayout(actions_layout)
 
-        # 8. Settings & Integration Checkboxes
+        # 9. Settings & Integration Checkboxes
         settings_card = QFrame()
         settings_card.setProperty("class", "glass-card")
         set_layout = QHBoxLayout(settings_card)
@@ -339,18 +394,18 @@ class MainWindow(QMainWindow):
         set_layout.addWidget(self.chk_startup)
 
         self.chk_tray = QCheckBox("Minimize to Tray")
-        self.chk_tray.setChecked(self.config.settings.get("minimize_to_tray", True))
+        self.chk_tray.setChecked(self.config.settings.get("minimize_to_tray", False))
         self.chk_tray.toggled.connect(lambda v: self._update_setting("minimize_to_tray", v))
         set_layout.addWidget(self.chk_tray)
 
         self.chk_close = QCheckBox("Close to Tray")
-        self.chk_close.setChecked(self.config.settings.get("close_to_tray", True))
+        self.chk_close.setChecked(self.config.settings.get("close_to_tray", False))
         self.chk_close.toggled.connect(lambda v: self._update_setting("close_to_tray", v))
         set_layout.addWidget(self.chk_close)
 
         main_layout.addWidget(settings_card)
 
-        # 9. Safety Advisory Footer
+        # 10. Safety Advisory Footer
         footer_lbl = QLabel(
             "Volume Booster Pro enhances system-wide audio across all Windows applications. "
             "Software amplification cannot guarantee physical speaker hardware safety; please listen at comfortable volumes."
@@ -463,18 +518,36 @@ class MainWindow(QMainWindow):
 
     def _update_apo_status_badge(self):
         installed = self.apo.is_installed()
-        if installed:
+        configured = self.apo.is_speaker_configured()
+        if installed and configured:
             self.apo_badge.setText("EQUALIZER APO: ACTIVE")
             self.apo_badge.setStyleSheet(
                 "background: rgba(0, 240, 255, 0.15); border: 1px solid rgba(0, 240, 255, 0.5); "
                 "border-radius: 10px; color: #00f0ff; font-size: 10px; font-weight: 800; padding: 4px 10px;"
             )
+            self.setup_banner.setVisible(False)
+        elif installed:
+            self.apo_badge.setText("APO: CONFIGURE SPEAKERS")
+            self.apo_badge.setStyleSheet(
+                "background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.5); "
+                "border-radius: 10px; color: #fbbf24; font-size: 10px; font-weight: 800; padding: 4px 10px;"
+            )
+            self.banner_title.setText("⚠️ CONFIGURE SPEAKERS IN EQUALIZER APO")
+            self.banner_desc.setText(
+                "Equalizer APO is installed! Click 'Select Speakers' below to ensure laptop speakers are checked in the Configurator."
+            )
+            self.setup_banner.setVisible(True)
         else:
             self.apo_badge.setText("APO: SETUP REQUIRED")
             self.apo_badge.setStyleSheet(
                 "background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.5); "
                 "border-radius: 10px; color: #fbbf24; font-size: 10px; font-weight: 800; padding: 4px 10px;"
             )
+            self.banner_title.setText("⚠️ SYSTEM AMPLIFICATION DRIVER SETUP")
+            self.banner_desc.setText(
+                "Equalizer APO allows boosting audio up to 300% across all Windows apps (Chrome, Spotify, VLC, games). Follow the setup guide to enable kernel-level amplification."
+            )
+            self.setup_banner.setVisible(True)
 
     def _update_bypass_ui(self, bypassed: bool):
         if bypassed:
@@ -512,8 +585,35 @@ class MainWindow(QMainWindow):
         bypassed = s.get("bypassed", False)
         device = s.get("device_name", "")
 
+        # 1. Update Equalizer APO if installed
         if notify_apo and self.apo.is_installed():
             self.apo.update_profile(vol, bass, voice, treble, bypassed=bypassed, device_name=device)
+
+        # 2. Synchronize Windows Master Endpoint Volume & Unmute Apps
+        if HAS_PYCAW:
+            try:
+                spk = AudioUtilities.GetSpeakers()
+                if spk and spk._dev:
+                    vol_p = spk._dev.Activate(IAudioEndpointVolume._iid_, comtypes.CLSCTX_ALL, None)
+                    ep_vol = ctypes.cast(vol_p, ctypes.POINTER(IAudioEndpointVolume))
+                    if vol >= 100:
+                        curr_scalar = float(ep_vol.GetMasterVolumeLevelScalar())
+                        if curr_scalar < 0.999:
+                            ep_vol.SetMasterVolumeLevelScalar(1.0, None)
+                    ep_vol = None
+                    vol_p = None
+
+                # Ensure active app sessions aren't attenuated in Windows Volume Mixer
+                if vol >= 100:
+                    sessions = AudioUtilities.GetAllSessions()
+                    for session in sessions:
+                        if session.Process:
+                            s_vol = session.SimpleAudioVolume
+                            if s_vol and s_vol.GetMasterVolume() < 0.99:
+                                s_vol.SetMasterVolume(1.0, None)
+                spk = None
+            except Exception:
+                pass
 
     def set_volume(self, vol: int):
         """Set volume percentage."""
@@ -630,12 +730,27 @@ class MainWindow(QMainWindow):
                     self.apply_preset(k)
                     break
 
+    def _launch_configurator(self):
+        """Launch Equalizer APO Configurator as Administrator."""
+        if not self.apo.launch_configurator():
+            self._open_apo_dialog()
+
     def _open_apo_dialog(self):
         dlg = ApoSetupDialog(self.apo, self)
         dlg.exec()
         self.apo = EqualizerApoEngine()
         self._update_apo_status_badge()
         self._apply_audio_dsp(notify_apo=True)
+
+    def _open_windows_sound_enhancements(self):
+        """Open Windows classic sound control panel directly to playback properties."""
+        try:
+            subprocess.Popen(["rundll32.exe", "shell32.dll,Control_RunDLL", "mmsys.cpl,,0"])
+        except Exception:
+            try:
+                subprocess.Popen(["control.exe", "mmsys.cpl"])
+            except Exception as e:
+                QMessageBox.warning(self, "Sound Control Panel", f"Could not launch Sound Control Panel: {e}")
 
     def _on_startup_toggled(self, checked: bool):
         self.config.set_start_with_windows(checked)
@@ -645,17 +760,21 @@ class MainWindow(QMainWindow):
         self.config.save_settings()
 
     def restore_from_tray(self):
+        """Unhide, raise and focus window."""
+        self.show()
+        self.setWindowState(self.windowState() & ~Qt.WindowState.WindowMinimized | Qt.WindowState.WindowActive)
         self.showNormal()
+        self.raise_()
         self.activateWindow()
 
     def changeEvent(self, event):
         if event.type() == event.Type.WindowStateChange:
-            if self.isMinimized() and self.config.settings.get("minimize_to_tray", True):
+            if self.isMinimized() and self.config.settings.get("minimize_to_tray", False):
                 self.hide()
         super().changeEvent(event)
 
     def closeEvent(self, event):
-        if self.config.settings.get("close_to_tray", True):
+        if self.config.settings.get("close_to_tray", False):
             event.ignore()
             self.hide()
             self.tray.show_message(
@@ -667,8 +786,17 @@ class MainWindow(QMainWindow):
 
     def exit_app(self):
         """Clean shutdown."""
-        self.monitor_worker.stop()
-        self.monitor_thread.quit()
-        self.monitor_thread.wait(1000)
-        self.tray.hide()
-        sys.exit(0)
+        try:
+            self.monitor.stop()
+        except Exception:
+            pass
+        try:
+            self.tray.hide()
+        except Exception:
+            pass
+        from PySide6.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app:
+            app.quit()
+        else:
+            sys.exit(0)

@@ -52,6 +52,40 @@ class EqualizerApoEngine:
         dll_path = os.path.join(self.install_dir, "EqualizerAPO.dll")
         return os.path.exists(dll_path)
 
+    def is_speaker_configured(self) -> bool:
+        """Check if Realtek / Laptop Speakers are registered in Equalizer APO registry."""
+        try:
+            with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\EqualizerAPO\Child APOs") as key:
+                num_subkeys, _, _ = winreg.QueryInfoKey(key)
+                for i in range(num_subkeys):
+                    sub = winreg.EnumKey(key, i)
+                    try:
+                        dev_key_path = r"SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render\\" + sub + r"\Properties"
+                        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, dev_key_path) as dkey:
+                            val, _ = winreg.QueryValueEx(dkey, "{a45c254e-df1c-4efd-8020-67d146a850e0},2")
+                            if val and "speaker" in str(val).lower() and "bth" not in str(val).lower():
+                                return True
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        return False
+
+    def launch_configurator(self) -> bool:
+        """Launch Equalizer APO Configurator (DeviceSelector.exe) as Administrator."""
+        import ctypes
+        if not self.install_dir:
+            return False
+        for name in ["DeviceSelector.exe", "Configurator.exe", "DeviceSelector", "Configurator"]:
+            exe = os.path.join(self.install_dir, name)
+            if os.path.exists(exe):
+                try:
+                    res = ctypes.windll.shell32.ShellExecuteW(None, "runas", exe, None, None, 1)
+                    return res > 32
+                except Exception:
+                    return False
+        return False
+
     def is_integrated(self) -> bool:
         """Check if VolumeBoosterPro.txt is included in main config.txt."""
         if not self.main_config_path or not os.path.exists(self.main_config_path):
@@ -66,7 +100,7 @@ class EqualizerApoEngine:
     def ensure_integration(self) -> Tuple[bool, str]:
         """
         Safely insert 'Include: VolumeBoosterPro.txt' into config.txt.
-        Creates an automatic backup 'config.txt.bak' first.
+        Disables sample 'Preamp: -6 dB' so it does not cancel out the volume boost.
         """
         if not self.is_installed():
             return False, "Equalizer APO is not installed."
@@ -86,25 +120,40 @@ class EqualizerApoEngine:
             except Exception as e:
                 return False, f"Failed to create config.txt: {e}"
 
-        # If already included, nothing to do
-        if self.is_integrated():
-            return True, "Already integrated."
-
-        # Backup existing config.txt
-        backup_path = self.main_config_path + ".bak"
-        if not os.path.exists(backup_path):
-            try:
-                shutil.copy2(self.main_config_path, backup_path)
-            except Exception as e:
-                print(f"[APO] Warning: Could not create config.txt backup: {e}")
-
-        # Append Include directive without overwriting user's other configurations
+        # Read existing config.txt
         try:
-            with open(self.main_config_path, "a", encoding="utf-8") as f:
-                f.write(f"\n\n# Added by Volume Booster Pro\n{INCLUDE_DIRECTIVE}\n")
-            return True, "Successfully linked Volume Booster Pro into Equalizer APO."
+            with open(self.main_config_path, "r", encoding="utf-8") as f:
+                content = f.read()
         except Exception as e:
-            return False, f"Error updating config.txt: {e}"
+            return False, f"Failed to read config.txt: {e}"
+
+        modified = False
+        # If it has the default sample "Preamp: -6 dB", comment it out so it doesn't reduce volume
+        if "Preamp: -6 dB" in content and "# Preamp: -6 dB" not in content:
+            content = content.replace("Preamp: -6 dB", "# Preamp: -6 dB  # Disabled by Volume Booster Pro")
+            modified = True
+
+        if INCLUDE_DIRECTIVE not in content:
+            content += f"\n\n# Added by Volume Booster Pro\n{INCLUDE_DIRECTIVE}\n"
+            modified = True
+
+        if modified:
+            # Backup existing config.txt
+            backup_path = self.main_config_path + ".bak"
+            if not os.path.exists(backup_path):
+                try:
+                    shutil.copy2(self.main_config_path, backup_path)
+                except Exception:
+                    pass
+
+            try:
+                with open(self.main_config_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+                return True, "Successfully linked Volume Booster Pro into Equalizer APO."
+            except Exception as e:
+                return False, f"Error updating config.txt: {e}"
+
+        return True, "Already integrated."
 
     def update_profile(self, volume_percent: float, bass_db: float, voice_db: float,
                        treble_db: float, bypassed: bool = False, device_name: str = "") -> Tuple[bool, str]:
@@ -127,26 +176,17 @@ class EqualizerApoEngine:
             "# Volume Booster Pro - Windows System-Wide Audio DSP Profile",
             "# Automatically updated by Volume Booster Pro desktop app.",
             "# ==============================================================",
+            "",
+            "# Apply boost and DSP to all active audio endpoints",
+            "Device: all",
+            "",
+            f"Preamp: {preamp_db:+.2f} dB",
+            "",
+            f"Filter 1: {filter_state} LSC Fc 150.0 Hz Gain {bass_db:+.2f} dB",
+            f"Filter 2: {filter_state} PK Fc 2200.0 Hz Gain {voice_db:+.2f} dB Q 1.00",
+            f"Filter 3: {filter_state} HSC Fc 7000.0 Hz Gain {treble_db:+.2f} dB",
             ""
         ]
-
-        if device_name and device_name.strip():
-            # Target specific device
-            lines.append(f'Device: "{device_name.strip()}"')
-            lines.append("")
-
-        # Master amplification preamp
-        lines.append(f"Preamp: {preamp_db:+.2f} dB")
-        lines.append("")
-
-        # 3-Band Equalizer filters
-        # 1. Bass (Low Shelf at 150 Hz)
-        lines.append(f"Filter 1: {filter_state} LSC Fc 150.0 Hz Gain {bass_db:+.2f} dB")
-        # 2. Voice Clarity (Peaking filter at 2200 Hz with Q=1.0)
-        lines.append(f"Filter 2: {filter_state} PK Fc 2200.0 Hz Gain {voice_db:+.2f} dB Q 1.00")
-        # 3. Treble (High Shelf at 7000 Hz)
-        lines.append(f"Filter 3: {filter_state} HSC Fc 7000.0 Hz Gain {treble_db:+.2f} dB")
-        lines.append("")
 
         content = "\n".join(lines)
 
