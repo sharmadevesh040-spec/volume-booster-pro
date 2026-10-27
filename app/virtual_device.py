@@ -34,11 +34,13 @@ class VirtualDeviceManager:
     @classmethod
     def detect_virtual_devices(cls) -> Dict[str, Any]:
         """Detect virtual audio cable endpoints on the system."""
-        devices = sd.query_devices()
+        from app.audio_monitor import safe_query_devices
+        devices = safe_query_devices()
         detected_inputs = []
         detected_outputs = []
 
-        for idx, dev in enumerate(devices):
+        for dev in devices:
+            idx = dev["id"]
             name = dev.get("name", "").lower()
 
             # Check for virtual playback input (where Windows sends audio)

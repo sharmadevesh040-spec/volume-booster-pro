@@ -7,10 +7,26 @@ import time
 import math
 import numpy as np
 import sounddevice as sd
-from typing import List, Dict, Any, Optional, Tuple
-from PySide6.QtCore import QObject, Signal, QThread
+from typing import List, Dict, Any, Optional
+from PySide6.QtCore import QObject, Signal
 
 from app.dsp import compute_spectrum
+
+
+def safe_query_devices() -> List[Dict[str, Any]]:
+    """
+    Safely query Windows audio devices one by one.
+    Protects against disconnected or unplugged Bluetooth drivers that crash PortAudio.
+    """
+    valid_devices = []
+    for i in range(64):
+        try:
+            d = sd.query_devices(i)
+            d["id"] = i
+            valid_devices.append(d)
+        except Exception:
+            continue
+    return valid_devices
 
 
 class AudioMonitorWorker(QObject):
@@ -28,36 +44,37 @@ class AudioMonitorWorker(QObject):
 
     def find_best_capture_device(self) -> Optional[int]:
         """Find the best loopback/recording device on the system."""
-        devices = sd.query_devices()
-        preferred_names = ["stereo mix", "what u hear", "wave out", "loopback", "cable output"]
-
-        # 1. Search for loopback devices
-        for idx, dev in enumerate(devices):
-            if dev.get("max_input_channels", 0) > 0:
-                name = dev.get("name", "").lower()
-                for pref in preferred_names:
-                    if pref in name:
-                        return idx
-
-        # 2. Search for any valid default input device
         try:
-            default_in = sd.default.device[0]
-            if default_in is not None and default_in >= 0:
-                return default_in
-        except Exception:
-            pass
+            devices = safe_query_devices()
+            preferred_names = ["stereo mix", "what u hear", "wave out", "loopback", "cable output"]
 
-        # 3. Fallback to first input device
-        for idx, dev in enumerate(devices):
-            if dev.get("max_input_channels", 0) > 0:
-                return idx
+            # 1. Search for loopback devices
+            for dev in devices:
+                if dev.get("max_input_channels", 0) > 0:
+                    name = dev.get("name", "").lower()
+                    for pref in preferred_names:
+                        if pref in name:
+                            return dev["id"]
+
+            # 2. Search for any valid default input device
+            try:
+                default_in = sd.default.device[0]
+                if default_in is not None and default_in >= 0:
+                    return default_in
+            except Exception:
+                pass
+
+            # 3. Fallback to first available input device
+            for dev in devices:
+                if dev.get("max_input_channels", 0) > 0:
+                    return dev["id"]
+        except Exception as e:
+            print(f"[AudioMonitor] Device discovery error: {e}")
 
         return None
 
     def _audio_callback(self, indata, frames, time_info, status):
         """Low-latency callback from audio capture stream."""
-        if status:
-            pass
         self._latest_buffer = indata.copy()
         self._has_audio_data = True
 
@@ -85,19 +102,22 @@ class AudioMonitorWorker(QObject):
 
         # Processing loop at ~40 FPS (25ms)
         while self._running:
-            if self._stream and self._has_audio_data:
-                chunk = self._latest_buffer
-                bins, rms, peak = compute_spectrum(chunk, num_bins=16, sample_rate=48000)
-                is_playing = rms > 0.005
-                self.spectrum_updated.emit(bins, rms, peak, is_playing)
-            else:
-                # Ambient idle wave animation when no audio is flowing
-                idle_phase += 0.06
-                idle_bins = []
-                for i in range(16):
-                    val = 0.04 + 0.03 * math.sin(idle_phase + i * 0.45)
-                    idle_bins.append(round(max(0.02, val), 3))
-                self.spectrum_updated.emit(idle_bins, 0.0, 0.0, False)
+            try:
+                if self._stream and self._has_audio_data:
+                    chunk = self._latest_buffer
+                    bins, rms, peak = compute_spectrum(chunk, num_bins=16, sample_rate=48000)
+                    is_playing = rms > 0.005
+                    self.spectrum_updated.emit(bins, rms, peak, is_playing)
+                else:
+                    # Ambient idle wave animation when no audio is flowing
+                    idle_phase += 0.06
+                    idle_bins = []
+                    for i in range(16):
+                        val = 0.04 + 0.03 * math.sin(idle_phase + i * 0.45)
+                        idle_bins.append(round(max(0.02, val), 3))
+                    self.spectrum_updated.emit(idle_bins, 0.0, 0.0, False)
+            except Exception as e:
+                pass
 
             time.sleep(0.025)
 
@@ -116,11 +136,11 @@ class AudioMonitorWorker(QObject):
 
 def get_playback_devices() -> List[Dict[str, Any]]:
     """Enumerate clean list of Windows audio playback endpoints."""
-    devices = sd.query_devices()
+    devices = safe_query_devices()
     seen_names = set()
     playback_list = []
 
-    for idx, d in enumerate(devices):
+    for d in devices:
         if d.get("max_output_channels", 0) > 0:
             name = d.get("name", "").strip()
             # Clean up redundant driver prefixes
@@ -135,7 +155,7 @@ def get_playback_devices() -> List[Dict[str, Any]]:
             if clean_name not in seen_names:
                 seen_names.add(clean_name)
                 playback_list.append({
-                    "id": idx,
+                    "id": d["id"],
                     "name": clean_name,
                     "raw_name": name,
                     "channels": d.get("max_output_channels", 2),

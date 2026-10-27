@@ -6,6 +6,7 @@ system-wide volume controls, 3-band equalizer, presets, and tray management.
 
 import os
 import sys
+from typing import Any
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QSlider,
     QPushButton, QComboBox, QCheckBox, QFrame, QScrollArea, QInputDialog,
