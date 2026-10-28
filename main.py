@@ -61,16 +61,17 @@ def main():
     config = ConfigManager()
     apo = EqualizerApoEngine()
 
-    # Create main window
-    window = MainWindow(config, apo)
-
     # Check CLI arguments
     start_minimized = "--minimized" in sys.argv or "-m" in sys.argv
     if not start_minimized:
-        window.show()
         # Prompt for installation if running portable for the first time
         from app.installer import check_first_run_install
-        check_first_run_install(config, window)
+        check_first_run_install(config)
+
+    # Create main window
+    window = MainWindow(config, apo)
+    if not start_minimized:
+        window.show()
     else:
         window.hide()
 

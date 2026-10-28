@@ -17,6 +17,7 @@ from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt
 
 from app.config import ConfigManager, APP_NAME, APP_DISPLAY_NAME, APP_VERSION
+from app.ui.styles import CYBER_DARK_STYLESHEET
 
 INSTALL_DIR = os.path.join(os.getenv("LOCALAPPDATA", os.path.expanduser("~\\AppData\\Local")), "Programs", APP_NAME)
 
@@ -265,9 +266,12 @@ class InstallPromptDialog(QDialog):
         self.config = config
         self.setWindowTitle(f"Install {APP_DISPLAY_NAME}")
         self.setFixedSize(520, 480)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags((self.windowFlags() & ~Qt.WindowContextHelpButtonHint) | Qt.WindowStaysOnTopHint)
+        self.setStyleSheet(CYBER_DARK_STYLESHEET)
 
         self._init_ui()
+        self.raise_()
+        self.activateWindow()
 
     def _init_ui(self):
         layout = QVBoxLayout(self)

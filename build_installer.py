@@ -56,12 +56,12 @@ def main():
     print("\n[2/3] Checking for Inno Setup Compiler...")
     iscc = find_inno_setup_compiler()
     if iscc:
-        print(f"  ✔ Found Inno Setup: {iscc}")
+        print(f"  [+] Found Inno Setup: {iscc}")
         print("  Generating dist\\VolumeBoosterPro-Setup.exe...")
         ret_iscc = subprocess.call([iscc, "installer.iss"])
         if ret_iscc == 0:
             setup_exe = os.path.join(base_dir, "dist", "VolumeBoosterPro-Setup.exe")
-            print(f"  ✔ Setup Installer created: {setup_exe}")
+            print(f"  [+] Setup Installer created: {setup_exe}")
         else:
             print("  [!] Inno Setup compilation returned non-zero code.")
     else:
@@ -80,7 +80,7 @@ def main():
                 rel_file = os.path.relpath(abs_file, os.path.join(base_dir, "dist"))
                 zipf.write(abs_file, rel_file)
 
-    print(f"  ✔ Portable ZIP created: {zip_path}")
+    print(f"  [+] Portable ZIP created: {zip_path}")
 
     print("\n=========================================================")
     print("BUILD COMPLETE! Artifacts ready in dist/ and project root.")

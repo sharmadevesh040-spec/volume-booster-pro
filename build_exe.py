@@ -35,6 +35,8 @@ def build():
         "--hidden-import=comtypes",
         "--hidden-import=pycaw",
         "--hidden-import=winreg",
+        "--hidden-import=app.installer",
+        "--hidden-import=win32com",
         main_py
     ]
 

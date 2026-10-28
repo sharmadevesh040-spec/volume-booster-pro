@@ -25,8 +25,12 @@ echo   [3] Setup Equalizer APO Engine
 echo   [4] Exit
 echo.
 
-set /p choice="Enter your choice (1-4) [default: 1]: "
-if "%choice%"=="" set choice=1
+if not "%~1"=="" (
+    set choice=%~1
+) else (
+    set /p choice="Enter your choice (1-4) [default: 1]: "
+    if "!choice!"=="" set choice=1
+)
 
 if "%choice%"=="1" goto do_install
 if "%choice%"=="2" goto do_portable
@@ -72,7 +76,7 @@ echo   - Your Desktop shortcut
 echo   - Your Windows Start Menu
 echo.
 echo Launching Volume Booster Pro now...
-timeout /t 2 >nul
+ping 127.0.0.1 -n 3 >nul
 
 if exist "%LOCALAPPDATA%\Programs\VolumeBoosterPro\VolumeBoosterPro.exe" (
     start "" "%LOCALAPPDATA%\Programs\VolumeBoosterPro\VolumeBoosterPro.exe"
