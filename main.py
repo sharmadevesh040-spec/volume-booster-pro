@@ -68,6 +68,9 @@ def main():
     start_minimized = "--minimized" in sys.argv or "-m" in sys.argv
     if not start_minimized:
         window.show()
+        # Prompt for installation if running portable for the first time
+        from app.installer import check_first_run_install
+        check_first_run_install(config, window)
     else:
         window.hide()
 

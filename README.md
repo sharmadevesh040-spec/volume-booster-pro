@@ -94,19 +94,28 @@ To solve this properly, Volume Booster Pro implements a **Dual-Engine Architectu
 
 ---
 
-## 4. How to Run
+## 4. Installation & Quick Start
 
-### Option A: 1-Click Batch Launcher (Quickest)
-Double-click [`run_app.bat`](file:///c:/myproject/volume%20booster/run_app.bat) in the project root folder.
+### For Users Downloading from GitHub
 
-### Option B: Run from Python Source
+#### Option A: Official Windows Installer (Recommended for GitHub Releases)
+Download `VolumeBoosterPro-Setup.exe` from your repository's **Releases** page.
+- Windows automatically opens the standard Setup Wizard.
+- Installs to `%LOCALAPPDATA%\Programs\VolumeBoosterPro` (no administrator privileges required).
+- Creates Desktop & Start Menu shortcuts, and registers with Windows Add/Remove Programs.
+
+#### Option B: 1-Click Installer from ZIP / Source
+If you downloaded or cloned the repository code from GitHub:
+1. Double-click [`install.bat`](file:///c:/myproject/volume%20booster/install.bat) in the root folder.
+2. Select **`[1] Install to PC`** — it will automatically set up shortcuts, register the uninstaller, and launch the app.
+
+#### Option C: Automatic In-App Prompt on First Launch
+If a user extracts the portable folder and runs [`run_app.bat`](file:///c:/myproject/volume%20booster/run_app.bat) or `VolumeBoosterPro.exe`, the application detects that it is running from a portable folder and automatically pops up an **"Install to PC?"** dialog offering 1-click Desktop shortcut setup.
+
+#### Option D: Run from Python Source
 ```bash
+pip install -r requirements.txt
 python main.py
-```
-
-### Option C: Run Standalone Executable
-```bash
-dist\VolumeBoosterPro\VolumeBoosterPro.exe
 ```
 
 ---

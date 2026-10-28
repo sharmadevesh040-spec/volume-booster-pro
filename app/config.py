@@ -73,7 +73,8 @@ DEFAULT_SETTINGS: Dict[str, Any] = {
     "start_with_windows": True,
     "minimize_to_tray": True,
     "close_to_tray": True,
-    "dark_mode": True
+    "dark_mode": True,
+    "install_prompt_dismissed": False
 }
 
 

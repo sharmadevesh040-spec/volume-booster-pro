@@ -55,8 +55,8 @@ class AudioMonitor(QObject):
                 self._com_initialized = True
                 spk = AudioUtilities.GetSpeakers()
                 if spk and spk._dev:
-                    meter_p = spk._dev.Activate(IAudioMeterInformation._iid_, comtypes.CLSCTX_ALL, None)
-                    self._meter = ctypes.cast(meter_p, ctypes.POINTER(IAudioMeterInformation))
+                    interface = spk._dev.Activate(IAudioMeterInformation._iid_, comtypes.CLSCTX_ALL, None)
+                    self._meter = interface.QueryInterface(IAudioMeterInformation)
             except Exception:
                 self._meter = None
 

@@ -593,15 +593,12 @@ class MainWindow(QMainWindow):
         if HAS_PYCAW:
             try:
                 spk = AudioUtilities.GetSpeakers()
-                if spk and spk._dev:
-                    vol_p = spk._dev.Activate(IAudioEndpointVolume._iid_, comtypes.CLSCTX_ALL, None)
-                    ep_vol = ctypes.cast(vol_p, ctypes.POINTER(IAudioEndpointVolume))
+                if spk and spk.EndpointVolume:
+                    ep_vol = spk.EndpointVolume
                     if vol >= 100:
                         curr_scalar = float(ep_vol.GetMasterVolumeLevelScalar())
                         if curr_scalar < 0.999:
                             ep_vol.SetMasterVolumeLevelScalar(1.0, None)
-                    ep_vol = None
-                    vol_p = None
 
                 # Ensure active app sessions aren't attenuated in Windows Volume Mixer
                 if vol >= 100:
