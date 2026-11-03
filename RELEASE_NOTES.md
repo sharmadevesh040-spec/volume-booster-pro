@@ -11,13 +11,13 @@
 ## 📦 Release Artifacts
 | File | Size | Type | Description |
 | :--- | :--- | :--- | :--- |
-| **VolumeBoosterPro-Setup.exe** | 43,946,248 bytes | Official Installer | Recommended 1-click Windows installer (Program Files) |
+| **VolumeBoosterPro-Setup.exe** | 43,946,310 bytes | Official Installer | Recommended 1-click Windows installer (Program Files) |
 | **VolumeBoosterPro-Windows-Portable.zip** | 65,108,952 bytes | Portable Archive | Standalone folder — run directly without install |
 | **SHA256SUMS.txt** | 199 bytes | Integrity Checksums | SHA-256 validation hashes |
 
 ## 🛡️ Integrity Checksums (SHA-256)
 ```text
-F7D4A288DD22DC0393F71361543B84B3EB948BB4C0CB483E1252B17A878C4770  VolumeBoosterPro-Setup.exe
+6924007A946914C2A0B0A5AE150337731A4BF826F83F264F0FF14D4F847EDAF5  VolumeBoosterPro-Setup.exe
 37E210D514C158D03C89F590E8155514A2FBDD4EA84E0BE92819567F90BA7B7D  VolumeBoosterPro-Windows-Portable.zip
 ```
 
