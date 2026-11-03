@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt, QThread, Slot
 
-from app.config import ConfigManager, DEFAULT_PRESETS, APP_DISPLAY_NAME, APP_VERSION
+from app.config import ConfigManager, DEFAULT_PRESETS, APP_DISPLAY_NAME, APP_VERSION, get_asset_path
 from app.dsp import volume_percent_to_db
 from app.apo_engine import EqualizerApoEngine
 from app.audio_monitor import AudioMonitorWorker, get_playback_devices, get_default_playback_device_name
@@ -48,7 +48,7 @@ class MainWindow(QMainWindow):
         self.resize(520, 840)
 
         # Set application icon
-        icon_path = os.path.abspath("assets/icon.png")
+        icon_path = get_asset_path("icon.png")
         if os.path.exists(icon_path):
             self.setWindowIcon(QIcon(icon_path))
 
@@ -90,7 +90,7 @@ class MainWindow(QMainWindow):
         brand_layout.setSpacing(8)
 
         logo_lbl = QLabel()
-        logo_pix = QPixmap("assets/icon.png")
+        logo_pix = QPixmap(get_asset_path("icon.png"))
         if not logo_pix.isNull():
             logo_lbl.setPixmap(logo_pix.scaled(28, 28, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         brand_layout.addWidget(logo_lbl)

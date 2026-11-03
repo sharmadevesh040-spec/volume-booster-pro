@@ -94,28 +94,34 @@ To solve this properly, Volume Booster Pro implements a **Dual-Engine Architectu
 
 ---
 
-## 4. Installation & Quick Start
+## 4. Professional Windows Installation & Distribution
 
-### For Users Downloading from GitHub
+Volume Booster Pro delivers a commercial, 1-click Windows installation experience similar to Antigravity and commercial audio utilities:
 
-#### Option A: Official Windows Installer (Recommended for GitHub Releases)
-Download `VolumeBoosterPro-Setup.exe` from your repository's **Releases** page.
-- Windows automatically opens the standard Setup Wizard.
-- Installs to `%LOCALAPPDATA%\Programs\VolumeBoosterPro` (no administrator privileges required).
-- Creates Desktop & Start Menu shortcuts, and registers with Windows Add/Remove Programs.
+### Option A: Official Windows Installer (`VolumeBoosterPro-Setup.exe`)
+Download **`VolumeBoosterPro-Setup.exe`** from the **[Releases](https://github.com)** page:
+- **Commercial Inno Setup Wizard:** Modern branded setup interface with high-resolution branding and License Agreement.
+- **System Architecture Verification:** Enforces 64-bit Windows 10 & 11 compatibility and bundled Visual C++ runtimes.
+- **Program Files Installation:** Deploys to `C:\Program Files\Volume Booster Pro` with full UAC validation.
+- **Equalizer APO Kernel Diagnostics:** Automatically scans your PC for Equalizer APO in `SOFTWARE\EqualizerAPO`, creates safety backups (`config.txt.bak`), and dynamically links `VolumeBoosterPro.txt` without touching default audio devices.
+- **Windows Integration:** Installs verified Desktop and Start Menu shortcuts with high-resolution icons.
+- **Windows Startup Option:** Optional minimized tray launch on boot (disabled by default).
+- **Windows Installed Apps:** Fully registered in Windows Settings -> Apps & Features with version metadata and complete uninstaller (`unins000.exe`).
+- **Seamless Upgrades:** Preserves your personal settings (`%LOCALAPPDATA%\VolumeBoosterPro\settings.json`) and custom acoustic presets across version upgrades.
 
-#### Option B: 1-Click Installer from ZIP / Source
-If you downloaded or cloned the repository code from GitHub:
-1. Double-click [`install.bat`](file:///c:/myproject/volume%20booster/install.bat) in the root folder.
-2. Select **`[1] Install to PC`** — it will automatically set up shortcuts, register the uninstaller, and launch the app.
+### Option B: Portable Edition (`VolumeBoosterPro-Windows-Portable.zip`)
+For USB flash drives, test environments, or non-admin use:
+1. Download and extract **`VolumeBoosterPro-Windows-Portable.zip`**.
+2. Run **`VolumeBoosterPro.exe`** directly without modifying system directories or registry.
 
-#### Option C: Automatic In-App Prompt on First Launch
-If a user extracts the portable folder and runs [`run_app.bat`](file:///c:/myproject/volume%20booster/run_app.bat) or `VolumeBoosterPro.exe`, the application detects that it is running from a portable folder and automatically pops up an **"Install to PC?"** dialog offering 1-click Desktop shortcut setup.
-
-#### Option D: Run from Python Source
+### Option C: Build from Source
+For developers and packagers:
 ```bash
-pip install -r requirements.txt
-python main.py
+# Automated Master Build (Executables, Installer, Portable ZIP, Checksums):
+build.bat
+
+# Package & Publish Release:
+publish.bat
 ```
 
 ---

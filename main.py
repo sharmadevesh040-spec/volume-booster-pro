@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import Qt
 
-from app.config import ConfigManager, APP_DISPLAY_NAME
+from app.config import ConfigManager, APP_DISPLAY_NAME, get_asset_path
 from app.apo_engine import EqualizerApoEngine
 from app.ui.main_window import MainWindow
 
@@ -53,7 +53,7 @@ def main():
     app.setApplicationDisplayName(APP_DISPLAY_NAME)
     app.setQuitOnLastWindowClosed(False)
 
-    icon_path = os.path.abspath("assets/icon.png")
+    icon_path = get_asset_path("icon.png")
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
 

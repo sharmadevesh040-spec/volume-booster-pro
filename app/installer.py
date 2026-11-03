@@ -16,7 +16,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt
 
-from app.config import ConfigManager, APP_NAME, APP_DISPLAY_NAME, APP_VERSION
+from app.config import ConfigManager, APP_NAME, APP_DISPLAY_NAME, APP_VERSION, get_asset_path
 from app.ui.styles import CYBER_DARK_STYLESHEET
 
 INSTALL_DIR = os.path.join(os.getenv("LOCALAPPDATA", os.path.expanduser("~\\AppData\\Local")), "Programs", APP_NAME)
@@ -281,7 +281,7 @@ class InstallPromptDialog(QDialog):
         # Header with Logo
         header_layout = QHBoxLayout()
         logo_lbl = QLabel()
-        logo_path = os.path.abspath("assets/icon.png")
+        logo_path = get_asset_path("icon.png")
         if os.path.exists(logo_path):
             pix = QPixmap(logo_path)
             logo_lbl.setPixmap(pix.scaled(44, 44, Qt.KeepAspectRatio, Qt.SmoothTransformation))

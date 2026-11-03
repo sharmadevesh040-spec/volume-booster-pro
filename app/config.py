@@ -12,6 +12,26 @@ APP_NAME = "VolumeBoosterPro"
 APP_DISPLAY_NAME = "Volume Booster Pro"
 APP_VERSION = "2.0.0"
 
+def get_asset_path(filename: str) -> str:
+    """Resolve asset file path across frozen binary, dev environment, and install dirs."""
+    import sys
+    if hasattr(sys, "_MEIPASS"):
+        p = os.path.join(sys._MEIPASS, "assets", filename)
+        if os.path.exists(p):
+            return p
+    exe_dir = os.path.dirname(sys.executable if getattr(sys, "frozen", False) else sys.argv[0])
+    p = os.path.join(exe_dir, "assets", filename)
+    if os.path.exists(p):
+        return p
+    p = os.path.join(exe_dir, "_internal", "assets", filename)
+    if os.path.exists(p):
+        return p
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    p = os.path.join(base_dir, "assets", filename)
+    if os.path.exists(p):
+        return p
+    return os.path.abspath(os.path.join("assets", filename))
+
 # Application storage directory in %LOCALAPPDATA%
 LOCAL_APP_DATA = os.getenv("LOCALAPPDATA", os.path.expanduser("~\\AppData\\Local"))
 APP_DATA_DIR = os.path.join(LOCAL_APP_DATA, APP_NAME)

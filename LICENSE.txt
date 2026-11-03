@@ -1,0 +1,46 @@
+VOLUME BOOSTER PRO END USER LICENSE AGREEMENT & TERMS OF USE
+
+Version 2.0.0
+Copyright (c) 2026 Volume Booster Pro Team. All rights reserved.
+
+PLEASE READ THIS AGREEMENT CAREFULLY BEFORE INSTALLING OR USING THIS SOFTWARE.
+
+1. GRANT OF LICENSE
+Volume Booster Pro Team grants you a personal, non-exclusive, non-transferable,
+royalty-free license to install and use Volume Booster Pro ("the Software") on your
+Windows computer in accordance with the terms of this Agreement.
+
+2. SYSTEM-WIDE AUDIO PROCESSING & AUDIO DRIVERS
+Volume Booster Pro interacts with the Windows Audio Subsystem (WASAPI and audiodg.exe)
+and may interface with kernel-level Audio Processing Objects (Equalizer APO) or virtual
+audio devices. The Software is designed to be non-destructive:
+- It does not modify Windows system core drivers without your explicit consent.
+- It backs up existing configuration files prior to applying volume filters.
+- It does not alter your default audio device without user action.
+
+3. HARDWARE SAFETY & HEARING HEALTH NOTICE
+Volume Booster Pro includes advanced digital signal processing (DSP) algorithms,
+including a 3-band parametric equalizer, dynamics peak compression, and a soft-knee
+limiter designed to prevent digital square-wave clipping.
+HOWEVER:
+- No software application can physically guarantee speaker hardware protection against
+  continuous thermal or physical overload if run at excessive volumes for prolonged periods.
+- You are responsible for monitoring audio output and maintaining safe acoustic levels.
+- High amplification levels (>200%) should be used cautiously on thin laptop speakers
+  or sensitive earphone transducers.
+
+4. PRIVACY & SECURITY
+Volume Booster Pro respects your privacy:
+- The Software does NOT record, store, or transmit your microphone or audio content.
+- The Software operates 100% locally on your computer with zero telemetry collection.
+- Installation and uninstallation processes perform clean file and shortcut operations.
+
+5. DISCLAIMER OF WARRANTIES
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM, OUT OF, OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+By clicking "Next" or "I accept the agreement" and continuing with installation,
+you confirm that you have read, understood, and agreed to be bound by these terms.

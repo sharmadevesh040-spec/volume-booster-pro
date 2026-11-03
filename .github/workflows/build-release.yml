@@ -8,6 +8,7 @@ on:
 
 jobs:
   build-windows:
+    name: Build Windows Installer & Portable Package
     runs-on: windows-latest
 
     steps:
@@ -24,19 +25,55 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pillow
+
+      - name: Generate Wizard Branding & Icons
+        run: |
+          python generate_installer_assets.py
 
       - name: Build Standalone Executable with PyInstaller
         run: |
           python build_exe.py
 
-      - name: Compile Inno Setup Installer
+      - name: Ensure Assets & Legal Files in Distribution Folder
+        shell: pwsh
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer.iss
+          if (!(Test-Path "dist\VolumeBoosterPro\assets")) {
+            New-Item -ItemType Directory -Path "dist\VolumeBoosterPro\assets" -Force
+          }
+          Copy-Item -Path "assets\*" -Destination "dist\VolumeBoosterPro\assets\" -Recurse -Force
+          Copy-Item -Path "LICENSE.txt", "README.md" -Destination "dist\VolumeBoosterPro\" -Force
 
-      - name: Create Portable Zip Package
+      - name: Compile Inno Setup Setup.exe
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) {
+            $iscc = "C:\Program Files\Inno Setup 6\ISCC.exe"
+          }
+          & $iscc installer.iss
+
+      - name: Create Portable Zip Distribution
         shell: pwsh
         run: |
           Compress-Archive -Path dist\VolumeBoosterPro\* -DestinationPath dist\VolumeBoosterPro-Windows-Portable.zip -Force
+
+      - name: Generate SHA-256 Checksums
+        shell: pwsh
+        run: |
+          $h1 = (Get-FileHash -Algorithm SHA256 "dist\VolumeBoosterPro-Setup.exe").Hash
+          $h2 = (Get-FileHash -Algorithm SHA256 "dist\VolumeBoosterPro-Windows-Portable.zip").Hash
+          "$h1  VolumeBoosterPro-Setup.exe`n$h2  VolumeBoosterPro-Windows-Portable.zip" | Out-File -Encoding ascii "dist\SHA256SUMS.txt"
+          Get-Content "dist\SHA256SUMS.txt"
+
+      - name: Upload Build Artifacts (CI Run)
+        uses: actions/upload-artifact@v4
+        with:
+          name: VolumeBoosterPro-Windows-Build
+          path: |
+            dist/VolumeBoosterPro-Setup.exe
+            dist/VolumeBoosterPro-Windows-Portable.zip
+            dist/SHA256SUMS.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -45,7 +82,7 @@ jobs:
           files: |
             dist/VolumeBoosterPro-Setup.exe
             dist/VolumeBoosterPro-Windows-Portable.zip
+            dist/SHA256SUMS.txt
           draft: false
           prerelease: false
           generate_release_notes: true
-

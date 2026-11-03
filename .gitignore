@@ -3,6 +3,7 @@ build/
 dist/
 *.spec
 *.log
+*.zip
 
 # Chrome test profiles
 .chrome-test-profile/
